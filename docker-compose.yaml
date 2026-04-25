@@ -1,0 +1,56 @@
+services:
+  # 1. Service Aplikasi Laravel (FrankenPHP)
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000" # Map port 8000 laptop ke 8000 container
+      - "5173:5173"
+    volumes:
+      - .:/app # Sinkronisasi folder lokal lo ke dalam container /app
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=laravel_db
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+      - REDIS_HOST=redis
+    # Perintah default buat nyalain Octane pake FrankenPHP
+    command: php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000 --watch
+    depends_on:
+      - db
+      - redis
+
+  # 2. Service Database (MySQL)
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: laravel_db
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db-data:/var/lib/mysql # Biar data DB gak ilang pas container mati
+
+  # 3. Service Redis (Opsional tapi direkomendasikan buat Octane)
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    ports:
+      - "8080:80" # Map port 8080 di laptop ke port 80 di container phpMyAdmin
+    environment:
+      - PMA_HOST=db # Nyuruh phpMyAdmin buat nembak ke service 'db'
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+    depends_on:
+      - db
+
+# Daftarin volume buat nyimpen data
+volumes:
+  db-data:
